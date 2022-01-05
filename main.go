@@ -84,8 +84,8 @@ func main() {
 		expectedTimestamp := timestampToTime(file.MTime)
 
 		if stat.ModTime().Unix() != expectedTimestamp.Unix() {
-			results.Bad = append(results.Good, file.Name)
-			//fixTimestamp(f, expectedTimestamp)
+			results.Bad = append(results.Bad, file.Name)
+			fixTimestamp(f, expectedTimestamp)
 			f.Close()
 			continue
 		}
