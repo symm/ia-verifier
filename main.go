@@ -5,8 +5,15 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 )
+
+var colorGreen = "\033[32m"
+var colorRed = "\033[31m"
+var colorYellow = "\033[33m"
+var colorReset = "\033[0m"
 
 type Results struct {
 	Bad     []string
@@ -18,10 +25,21 @@ type Item struct {
 	Filename string
 }
 
-var colorGreen = "\033[32m"
-var colorRed = "\033[31m"
-var colorYellow = "\033[33m"
-var colorReset = "\033[0m"
+func timestampToTime(timestamp string) time.Time {
+	i, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	return time.Unix(i, 0)
+}
+
+func fixTimestamp(f *os.File, timestamp time.Time) {
+	if err := os.Chtimes(f.Name(), timestamp, timestamp); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Fixed timestamp on" + f.Name())
+}
 
 func main() {
 
@@ -45,10 +63,11 @@ func main() {
 		}
 
 		f, err := os.Open("./" + file.Name)
-		defer f.Close()
 
 		if err != nil {
+			fmt.Println(err)
 			results.Missing = append(results.Missing, file.Name)
+			f.Close()
 			continue
 		}
 
@@ -56,12 +75,24 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		if stat.Size() != file.Size {
 			results.Bad = append(results.Bad, file.Name)
+			f.Close()
+			continue
+		}
+
+		expectedTimestamp := timestampToTime(file.MTime)
+
+		if stat.ModTime().Unix() != expectedTimestamp.Unix() {
+			results.Bad = append(results.Good, file.Name)
+			//fixTimestamp(f, expectedTimestamp)
+			f.Close()
+			continue
 		}
 
 		results.Good = append(results.Good, file.Name)
-
+		f.Close()
 	}
 
 	fmt.Println("Bad:")
