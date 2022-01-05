@@ -65,7 +65,6 @@ func main() {
 		f, err := os.Open("./" + file.Name)
 
 		if err != nil {
-			fmt.Println(err)
 			results.Missing = append(results.Missing, file.Name)
 			f.Close()
 			continue
