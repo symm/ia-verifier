@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha1"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -92,6 +94,25 @@ func main() {
 		if stat.ModTime().Unix() != expectedTimestamp.Unix() {
 			fixTimestamp(f, expectedTimestamp)
 		}
+
+		///////////
+		// Really hacky hash verify
+		// TODO: allow choice of hashing crc32 for faster etc.
+		h := sha1.New()
+		if _, err := io.Copy(h, f); err != nil {
+			log.Fatal(err)
+		}
+
+		hash := fmt.Sprintf("%x", h.Sum(nil))
+
+		// TODO: better matching. Case sensitivity will fail.
+		if hash != file.SHA1 {
+			results.Bad = append(results.Bad, file.Name)
+			f.Close()
+			continue
+		}
+
+		////////////
 
 		results.Good = append(results.Good, file.Name)
 		f.Close()
