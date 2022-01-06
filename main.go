@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/schollz/progressbar/v3"
 )
 
 var colorGreen = "\033[32m"
@@ -38,7 +40,7 @@ func fixTimestamp(f *os.File, timestamp time.Time) {
 	if err := os.Chtimes(f.Name(), timestamp, timestamp); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Fixed timestamp on" + f.Name())
+	//fmt.Println("Fixed timestamp on" + f.Name())
 }
 
 func main() {
@@ -57,7 +59,11 @@ func main() {
 
 	results := Results{}
 
+	bar := progressbar.Default(int64(len(xml.Files)))
+
 	for _, file := range xml.Files {
+		bar.Add(1)
+
 		if file.Name == matches[0] {
 			continue
 		}
@@ -84,10 +90,7 @@ func main() {
 		expectedTimestamp := timestampToTime(file.MTime)
 
 		if stat.ModTime().Unix() != expectedTimestamp.Unix() {
-			results.Bad = append(results.Bad, file.Name)
 			fixTimestamp(f, expectedTimestamp)
-			f.Close()
-			continue
 		}
 
 		results.Good = append(results.Good, file.Name)
