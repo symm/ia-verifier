@@ -45,6 +45,27 @@ func fixTimestamp(f *os.File, timestamp time.Time) {
 	//fmt.Println("Fixed timestamp on" + f.Name())
 }
 
+func printReport(results Results) {
+	fmt.Println("Bad:")
+	for _, filename := range results.Bad {
+		fmt.Println(string(colorRed), filename, string(colorReset))
+	}
+
+	fmt.Println("Good:")
+	for _, filename := range results.Good {
+		fmt.Println(string(colorGreen), filename, string(colorReset))
+	}
+
+	fmt.Println("Missing:")
+	for _, filename := range results.Missing {
+		fmt.Println(string(colorYellow), filename, string(colorReset))
+	}
+}
+
+func printSummary(results Results) {
+	fmt.Printf("Missing: %d | Bad: %d | Good: %d\n", len(results.Missing), len(results.Bad), len(results.Good))
+}
+
 func main() {
 
 	matches, err := filepath.Glob("*_files.xml")
@@ -66,12 +87,14 @@ func main() {
 	for _, file := range xml.Files {
 		bar.Add(1)
 
+		// Ignore the _files.xml
 		if file.Name == matches[0] {
 			continue
 		}
 
 		f, err := os.Open("./" + file.Name)
 
+		// Check for presence of file
 		if err != nil {
 			results.Missing = append(results.Missing, file.Name)
 			f.Close()
@@ -83,14 +106,15 @@ func main() {
 			log.Fatal(err)
 		}
 
+		// Check the file is the correct size
 		if stat.Size() != file.Size {
 			results.Bad = append(results.Bad, file.Name)
 			f.Close()
 			continue
 		}
 
+		// Modify timestamp if it doesn't match the xml file
 		expectedTimestamp := timestampToTime(file.MTime)
-
 		if stat.ModTime().Unix() != expectedTimestamp.Unix() {
 			fixTimestamp(f, expectedTimestamp)
 		}
@@ -118,20 +142,6 @@ func main() {
 		f.Close()
 	}
 
-	fmt.Println("Bad:")
-	for _, filename := range results.Bad {
-		fmt.Println(string(colorRed), filename, string(colorReset))
-	}
-
-	fmt.Println("Good:")
-	for _, filename := range results.Good {
-		fmt.Println(string(colorGreen), filename, string(colorReset))
-	}
-
-	fmt.Println("Missing:")
-	for _, filename := range results.Missing {
-		fmt.Println(string(colorYellow), filename, string(colorReset))
-	}
-
-	fmt.Printf("Missing: %d | Bad: %d | Good: %d\n", len(results.Missing), len(results.Bad), len(results.Good))
+	printReport(results)
+	printSummary(results)
 }
